@@ -1,0 +1,1 @@
+cd cli && node index.js

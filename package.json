@@ -1,0 +1,35 @@
+{
+  "name": "Gloobix.io",
+  "version": "1.6.5",
+  "description": "Open source multi-protocol Gloobix server",
+  "author": "AntonioSysPro (https://github.com/AntonioSysPro)",
+  "homepage": "https://github.com/AntonioSysPro/Gloobix.io",
+  "license": "Apache-2.0",
+  "main": "src/index.js",
+  "dependencies": {
+    "express": "^4.17.1",
+    "firebase-admin": "^13.4.0",
+    "path": "^0.12.7",
+    "ws": "^8.18.3"
+  },
+  "scripts": {
+    "start": "cd cli && node index.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "client": "cd client && node index"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AntonioSysPro/Gloobix.io"
+  },
+  "bugs": {
+    "url": "https://github.com/AntonioSysPro/Gloobix.io/issues"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "cross-env": "^7.0.3"
+  }
+}
