@@ -234,6 +234,21 @@ class LegacyProtocol extends Protocol
     }
 
     /**
+     * Notify client that a powerup was activated for this player
+     * @param {string} skin
+     * @param {number} durationMs
+     */
+    onPowerupActivate ( skin, durationMs )
+    {
+        const writer = new Writer();
+        // custom packet id 0x70
+        writer.writeUInt8( 0x70 );
+        writer.writeZTStringUTF8( skin );
+        writer.writeUInt32( durationMs );
+        this.send( writer.finalize() );
+    }
+
+    /**
      * @abstract
      * @param {Cell[]} add
      * @param {Cell[]} upd

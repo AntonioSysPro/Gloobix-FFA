@@ -97,6 +97,51 @@ class PowerUP extends Cell
         const player = c.owner;
         const self = this;
         if ( !player ) return;
+        // Aplicar/Acumular powerup en el jugador y notificar al cliente con el tiempo restante
+        try {
+            if ( player && typeof player.addPowerup === 'function' )
+            {
+                // crear apply/remove según el tipo
+                let applyFn = null, removeFn = null;
+                switch ( this.power )
+                {
+                    case 1: // speed
+                        applyFn = function () { player.doublespeed = true; };
+                        removeFn = function () { player.doublespeed = false; };
+                        break;
+                    case 2: // minions
+                        applyFn = function () { player.hasMinion = (player.hasMinion || 0) + 1; };
+                        removeFn = function () { player.hasMinion = Math.max(0, (player.hasMinion || 1) - 1); };
+                        break;
+                    case 3: // shoot virus
+                        applyFn = function () { player.canShootVirus = true; };
+                        removeFn = function () { player.canShootVirus = false; };
+                        break;
+                    case 4: // popsplit virus
+                        applyFn = function () { player.canShootPopsplitVirus = true; };
+                        removeFn = function () { player.canShootPopsplitVirus = false; };
+                        break;
+                    case 5: // color
+                        applyFn = function () { player.cellColor = randomColor(); };
+                        removeFn = function () { }; // no-op
+                        break;
+                    case 6: // shield
+                        applyFn = function () { player.hasShield = true; };
+                        removeFn = function () { player.hasShield = false; };
+                        break;
+                    case 7: // merge
+                        applyFn = function () { player.hasMerge = true; };
+                        removeFn = function () { player.hasMerge = false; };
+                        break;
+                }
+                const remaining = player.addPowerup( this.skin || '', this.powertimer, applyFn, removeFn );
+                // Notificar al cliente el tiempo restante acumulado
+                if ( player.router && player.router.protocol && typeof player.router.protocol.onPowerupActivate === 'function' )
+                {
+                    player.router.protocol.onPowerupActivate( this.skin || '', remaining );
+                }
+            }
+        } catch ( e ) { /* noop */ }
         if ( this.power === 1 )
         {
             player.doublespeed = true;

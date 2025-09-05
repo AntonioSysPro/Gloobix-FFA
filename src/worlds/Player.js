@@ -64,6 +64,8 @@ class Player
         this.hasShield = false; // Nuevo flag para escudo
         this.hasMerge = false;
         this.hasMinion = 0;
+    // mapa de powerups activos: { [skin]: { expiresAt: number, timeoutId: Timeout, removeFn: function } }
+    this.activePowerups = {};
     }
 
     get settings () { return this.handle.settings; }
@@ -161,6 +163,46 @@ class Player
             visibleCells[ cell.id ] = cell;
         }
         this.world.finder.search( this.viewArea, ( cell ) => visibleCells[ cell.id ] = cell );
+    }
+
+    /**
+     * Añade o extiende un powerup para este jugador.
+     * @param {string} skin
+     * @param {number} durationMs
+     * @param {function} applyFn  - función que aplica el efecto inmediatamente
+     * @param {function} removeFn - función que remueve el efecto
+     * @returns {number} remainingMs - tiempo restante en ms después de aplicar/acomular
+     */
+    addPowerup ( skin, durationMs, applyFn, removeFn )
+    {
+        const now = Date.now();
+        durationMs = Number( durationMs ) || 0;
+        if ( !skin ) skin = 'unknown';
+        let entry = this.activePowerups[ skin ];
+        // si no estaba activo, aplicar efecto
+        if ( !entry || entry.expiresAt <= now )
+        {
+            try { if ( typeof applyFn === 'function' ) applyFn(); } catch ( e ) { /* noop */ }
+            entry = { expiresAt: now + durationMs, timeoutId: null, removeFn: removeFn };
+        }
+        else
+        {
+            // ya activo: acumular
+            entry.expiresAt = entry.expiresAt + durationMs;
+        }
+
+        // limpiar timeout previo
+        if ( entry.timeoutId ) clearTimeout( entry.timeoutId );
+        // programar nueva remoción
+        const wait = Math.max( 0, entry.expiresAt - now );
+        entry.timeoutId = setTimeout( () => {
+            try { if ( typeof removeFn === 'function' ) removeFn(); } catch ( e ) { /* noop */ }
+            // eliminar del mapa
+            delete this.activePowerups[ skin ];
+        }, wait );
+
+        this.activePowerups[ skin ] = entry;
+        return Math.max( 0, entry.expiresAt - now );
     }
 
     checkExistence ()

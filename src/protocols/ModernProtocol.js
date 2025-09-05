@@ -356,6 +356,20 @@ class ModernProtocol extends Protocol
 
         this.send( writer.finalize() );
     }
+
+    /**
+     * Notify client that a powerup was activated for this player (modern protocol)
+     * @param {string} skin
+     * @param {number} durationMs
+     */
+    onPowerupActivate ( skin, durationMs )
+    {
+        const writer = new Writer();
+        writer.writeUInt8( 0x70 );
+        writer.writeZTStringUTF8( skin );
+        writer.writeUInt32( durationMs );
+        this.send( writer.finalize() );
+    }
 }
 
 module.exports = ModernProtocol;

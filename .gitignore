@@ -8,6 +8,7 @@ keys/key.pem
 # Ignore service account keys and all keys directory
 keys/
 /client
+client/*
 
 # Botname file
 #src/ai/botnames.txt
