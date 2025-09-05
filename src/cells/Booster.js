@@ -11,6 +11,7 @@ class Booster extends Cell
     {
         const size = world.settings.boosterSize;
         super( world, x, y, size, 0xFF3333 );
+        this.skin = "PowerupMass";
 
         this.fedTimes = 0;
         this.splitAngle = NaN;

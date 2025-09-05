@@ -1,5 +1,5 @@
 const Bot = require( "./Bot" );
-const fs = require("fs");
+const fs = require( "fs" );
 
 class PlayerBot extends Bot
 {
@@ -34,12 +34,12 @@ class PlayerBot extends Bot
         if ( player.state === -1 )
         {
             const names = this.listener.settings.worldPlayerBotNames;
-            const fs = require("fs");
-            const skinList = fs.readFileSync("../src/txt/skinList.txt", "utf-8").split(",");
+            const fs = require( "fs" );
+            const skinList = fs.readFileSync( "../src/txt/skinList.txt", "utf-8" ).split( "," );
             /** @type {string} */
             this.spawningName = `<${ skinList[ ~~( Math.random() * skinList.length ) ] }>` + names[ ~~( Math.random() * names.length ) ] || "Dont't kill me!";
             //if ( this.spawningName.indexOf( "<*>" ) !== -1 )
-               // this.spawningName = this.spawningName.replace( "<*>", `<${ skins[ ~~( Math.random() * skins.length ) ] }>` );
+            // this.spawningName = this.spawningName.replace( "<*>", `<${ skins[ ~~( Math.random() * skins.length ) ] }>` );
             this.onSpawnRequest();
             this.spawningName = null;
         }

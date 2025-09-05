@@ -3,6 +3,7 @@ const ServerHandle = require( "../ServerHandle" );
 const World = require( "./World" );
 const Cell = require( "../cells/Cell" );
 const PlayerCell = require( "../cells/PlayerCell" );
+const Minion = require( "../bots/Minion" );
 
 class Player
 {
@@ -53,12 +54,31 @@ class Player
             h: 1080 / 2 * handle.settings.playerViewScaleMult,
             s: 1
         };
+
+        // powerup flags
+        this.doublespeed = false;
+        this.minionControl = false;
+        this.canShootVirus = false;
+        this.canShootPopsplitVirus = false;
+        this.miQ = 0;
+        this.hasShield = false; // Nuevo flag para escudo
+        this.hasMerge = false;
+        this.hasMinion = 0;
     }
 
     get settings () { return this.handle.settings; }
 
     destroy ()
     {
+        if ( this.hasMinion > 0 )
+        {
+            let realCount = 0;
+            for ( let i = 0; i < this.router.minions.length > 0; i++ )
+            {
+                this.router.minions[ 0 ].close();
+                realCount++;
+            }
+        }
         if ( this.hasWorld ) this.world.removePlayer( this );
         this.exists = false;
     }

@@ -9,8 +9,13 @@ class Minion extends Bot
     {
         super( following.player.world );
 
-        this.following = following;
-        following.minions.push( this );
+        this.skin = "Minion";
+        try
+        {
+            this.following = following;
+            following.minions.push( this );
+        }
+        catch { }
     }
 
     static get type () { return "minion"; }
@@ -18,8 +23,12 @@ class Minion extends Bot
 
     close ()
     {
-        super.close();
-        this.following.minions.splice( this.following.minions.indexOf( this ), 1 );
+        try
+        {
+            super.close();
+            this.following.minions.splice( this.following.minions.indexOf( this ), 1 );
+        }
+        catch { }
     }
 
     get shouldClose ()
@@ -42,7 +51,7 @@ class Minion extends Bot
         const player = this.player;
         if ( player.state === -1 && this.following.player.state === 0 )
         {
-            this.spawningName = name;
+            this.spawningName = `<Minion>` + name;
             this.onSpawnRequest();
             this.spawningName = null;
         } else

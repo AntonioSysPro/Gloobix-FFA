@@ -1,76 +1,215 @@
-var Cell = require( './Cell' );
-var PlayerCell = require( './PlayerCell' );
-function PowerUP ( gameServer )
-{
-    Cell.apply( this, Array.prototype.slice.call( arguments ) );
-    this.cellType = 2;
-    this.isSpiked = false;
-    this.isMotherCell = false; // Not to confuse bots
-    this.setColor( { r: 0xff, g: 0x00, b: 0x94 } );
-    this.setSize( 50 );
-    this.powertimer = 20 * 1000 // 20 Seconds
-    this.power = Math.round( Math.random() * ( 4 - 1 ) + 1 ); // 1 = Speed 2 = Minions 3 = Virus shoot for 5 seconds 4 = One Popsplit Virus w shot
-    this.gameServer = gameServer;
-}
-module.exports = PowerUP;
-PowerUP.prototype = new Cell();
+const { randomColor } = require( "../primitives/Misc" );
+const { playerNoCollideDelay } = require( "../Settings" );
+const Player = require( "../worlds/Player" );
+const Cell = require( "./Cell" );
+const PlayerCell = require( "./PlayerCell" );
+const Minion = require( "../bots/Minion" );
+const QuadTree = require( "../primitives/QuadTree" );
+const PlayerBot = require( "../bots/PlayerBot" );
+const Food = require( "../cells/Food" );
+const EjectedCell = require( "../cells/EjectedCell" );
+const Mothercell = require( "../cells/Mothercell" );
+const Virus = require( "../cells/Virus" );
+const Booster = require( "../cells/Booster" );
+const ChatChannel = require( "../sockets/ChatChannel" );
+const { Router } = require( "express" );
+const pepe = false;
 
-// Main Functions
-
-PowerUP.prototype.onEaten = function ( c )
+class PowerUP extends Cell
 {
-    var player = c.owner;
-    var self = this;
-    if ( this.power == 1 )
+    TimeToMs ( ttm )
     {
-        player.doublespeed = true;
-        // OverRide
-        this.gameServer.sendChatMessage( null, player, "You have been gived with Double Speed For 20 Seconds!" );
-        setTimeout( function ()
+        const keplivel = ttm.toString().replace( /[^a-z]/g, '' ),
+            kepliven = ttm.toString().replace( /[^0-9]/g, '' ),
+            keplep = parseInt( kepliven );
+        switch ( keplivel )
         {
-            player.doublespeed = false;
-            self.gameServer.sendChatMessage( null, player, "YOUR DOUBLE SPEED POWERUP HAS RAN OUT!" );
-        }, this.powertimer );
-    } else if ( this.power == 2 )
-    {
-        player.minionControl = true;
-        for ( var i = 0; i < 5; i++ )
-        {
-            this.gameServer.bots.addMinion( player );
+            case 'ms':
+                return keplep * 1;
+            case 's':
+                return keplep * 1000;
+            case 'm':
+                return keplep * 60000;
+            case 'h':
+                return keplep * 3600000;
+            case 'd':
+                return keplep * 86400000;
+            case 'sm':
+                return keplep * 604800000;
+            case 'mm':
+                return keplep * 2629800000;
+            case 'a':
+                return keplep * 31557600000;
         }
-        this.gameServer.sendChatMessage( null, player, "YOU HAVE BEEN GIVED WITH 5 MINIONS! FOR 20 SECONDS" );
-
-        setTimeout( function ()
-        {
-            player.minionControl = false;
-            player.miQ = 0;
-            self.gameServer.sendChatMessage( null, player, "YOUR MINIONS HAVE SUDDENLY VANISHED!" );
-        }, this.powertimer );
-    } else if ( this.power == 3 )
-    {
-        player.canShootVirus = true;
-        this.gameServer.sendChatMessage( null, player, "YOUR HAVE BEEN GRANTED THE ABILITY TO SHOOT VIRUSES!" );
-        setTimeout( function ()
-        {
-            player.canShootVirus = false;
-            self.gameServer.sendChatMessage( null, player, "YOU CAN NO LONGER SHOOT VIRUSES!" );
-        }, 5000 );
-    } else
-    {
-        // One popsplt shot
-        player.canShootPopsplitVirus = true;
-        this.gameServer.sendChatMessage( null, player, "YOU CAN SHOOT ONE POPSPLIT VIRUS NOW! TURN PLAYERS INTO HUNDREDS OF PIECES!" );
     }
-};
+    /**
+     * @param {World} world
+     * @param {number} x
+     * @param {number} y
+     */
+    constructor ( world, x, y )
+    {
+        const size = world.settings.powerupSize || 50;
+        super( world, x, y, size );
+        this.powertimer = ( this.TimeToMs( world.settings.powerupDuration ) );
+        this.power = Math.floor( Math.random() * 7 ) + 1; // 1..7
+        if ( this.power == 1 )
+        { this.skin = "PowerupSpeed"; }
+        if ( this.power == 2 )
+        { this.skin = "Minion"; }
+        if ( this.power == 3 )
+        { this.skin = "PowerupVirus"; }
+        if ( this.power == 4 )
+        { this.skin = "8"; }
+        if ( this.power == 5 )
+        { this.skin = "PowerupColor"; }
+        if ( this.power == 6 )
+        { this.skin = "PowerupShield"; }
+        if ( this.power == 7 )
+        {
+            this.skin = "PowerupMerge"
+        }
+    }
 
-PowerUP.prototype.onAdd = function ( gameServer )
-{
-    gameServer.nodesVirus.push( this );
-};
+    get type () { return 2; }
+    get isSpiked () { return false; }
+    get isAgitated () { return false; }
+    get avoidWhenSpawning () { return false; }
 
-PowerUP.prototype.onRemove = function ( gameServer )
-{
-    var index = gameServer.nodesVirus.indexOf( this );
-    if ( index != -1 )
-        gameServer.nodesVirus.splice( index, 1 );
-};
+    onSpawned ()
+    {
+        if ( typeof this.world.powerupCount === 'number' ) this.world.powerupCount++;
+        /*if ( this.world && this.world.handle && this.world.handle.logger )
+            this.world.handle.logger.inform( `powerup spawned at ${ this.x.toFixed( 0 ) }, ${ this.y.toFixed( 0 ) } (type ${ this.power })` );*/
+    }
+
+    onRemoved ()
+    {
+        if ( typeof this.world.powerupCount === 'number' ) this.world.powerupCount--;
+    }
+
+    /**
+     * Called when eaten by another cell
+     * @param {Cell} c
+     */
+    whenEatenBy ( c )
+    {
+        const player = c.owner;
+        const self = this;
+        if ( !player ) return;
+        if ( this.power === 1 )
+        {
+            player.doublespeed = true;
+            if ( this.world && this.world.handle && typeof this.world.handle.logger !== 'undefined' )
+                this.world.handle.logger.inform( `player ${ player.id } picked speed powerup` );
+            if ( player.router && player.router.send ) this.world.worldChat && this.world.handle && this.world.handle.gamemode && this.world.handle.logger; // noop to quiet lint
+            setTimeout( function ()
+            {
+                player.doublespeed = false;
+            }, this.powertimer );
+        }
+
+        // Spawn minions
+        else if ( this.power === 2 )
+        {/** @param {Player} player */
+            new Minion( player.router )
+            {
+                try
+                {
+                    player.hasMinion = 10;
+                    if ( !player.router.isExternal ) return;
+                    for ( let i = 0; i < this.owner.hasMinion; i++ )
+                        new Minion( player.router );
+                }
+                catch { }
+            }
+            setTimeout( function ()
+            {
+                player.hasMinion = 0;
+                let realCount = 0;
+                for ( let i = 0; i < player.router.minions.length > 0; i++ )
+                {
+                    player.router.minions[ 0 ].close();
+                    realCount++;
+                }
+                player.router.listener.globalChat.directMessage( null, player.router, '¡Se acabo el tiempo' );
+            }, 30000 );
+        }
+
+        // Shoot virus ability
+        else if ( this.power === 3 )
+        {
+            player.canShootVirus = true;
+            // Informar al jugador por el canal de chat (no usar router.send con objetos)
+            if ( player.router && player.router.listener && player.router.listener.globalChat )
+            {
+                player.router.listener.globalChat.directMessage( null, player.router, '¡Ahora puedes disparar virus por tiempo limitado!' );
+            }
+            setTimeout( function ()
+            {
+                player.canShootVirus = false;
+                player.router.listener.globalChat.directMessage( null, player.router, '¡Se acabo el tiempo' );
+            }, this.powertimer );
+        }
+
+        // One popsplit virus
+        else if ( this.power === 4 )
+        {
+            player.canShootPopsplitVirus = true;
+            // Informar al jugador por el canal de chat
+            if ( player.router && player.router.listener && player.router.listener.globalChat )
+            {
+                player.router.listener.globalChat.directMessage( null, player.router, '¡Puedes disparar un virus popsplit!' );
+            }
+            // Desactivar después de un disparo o tras el tiempo
+            setTimeout( function ()
+            {
+                player.canShootPopsplitVirus = false;
+            }, this.powertimer );
+        }
+
+        //Change color
+        else if ( this.power === 5 )
+        {
+            player.cellColor = randomColor();
+        }
+
+        //Shield
+        else if ( this.power === 6 )
+        {
+            // Activar escudo
+            player.hasShield = true;
+            if ( player.router && player.router.listener && player.router.listener.globalChat )
+            {
+                player.router.listener.globalChat.directMessage( null, player.router, '¡Escudo activado por tiempo limitado!' );
+            }
+            setTimeout( function ()
+            {
+                player.hasShield = false;
+                if ( player.router && player.router.listener && player.router.listener.globalChat )
+                {
+                    player.router.listener.globalChat.directMessage( null, player.router, 'El escudo ha expirado.' );
+                }
+            }, this.powertimer );
+        }
+        else if ( this.power === 7 )
+        {
+            // Instant Merge
+            player.hasMerge = true;
+            if ( player.router && player.router.listener && player.router.listener.globalChat )
+            {
+                player.router.listener.globalChat.directMessage( null, player.router, '¡Merge activado por tiempo limitado!' );
+            }
+            setTimeout( function ()
+            {
+                player.hasMerge = false;
+                if ( player.router && player.router.listener && player.router.listener.globalChat )
+                {
+                    player.router.listener.globalChat.directMessage( null, player.router, 'El merge ha expirado.' );
+                }
+            }, this.powertimer );
+        }
+    }
+}
+
+module.exports = PowerUP;

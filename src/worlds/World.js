@@ -9,6 +9,7 @@ const PlayerCell = require( "../cells/PlayerCell" );
 const Mothercell = require( "../cells/Mothercell" );
 const Virus = require( "../cells/Virus" );
 const Booster = require( "../cells/Booster" );
+const PowerUP = require( "../cells/PowerUP" );
 const ChatChannel = require( "../sockets/ChatChannel" );
 
 const { fullyIntersects, SQRT_2 } = require( "../primitives/Misc" );
@@ -38,6 +39,7 @@ class World
         this.mothercellCount = 0;
         this.virusCount = 0;
         this.boosterCount = 0;
+        this.powerupCount = 0;
         /** @type {EjectedCell[]} */
         this.ejectedCells = [];
         /** @type {PlayerCell[]} */
@@ -286,6 +288,32 @@ class World
         }
     }
 
+    TimeToMs ( ttm )
+    {
+        const keplivel = ttm.toString().replace( /[^a-z]/g, '' ),
+            kepliven = ttm.toString().replace( /[^0-9]/g, '' ),
+            keplep = parseInt( kepliven );
+        switch ( keplivel )
+        {
+            case 'ms':
+                return keplep * 1;
+            case 's':
+                return keplep * 1000;
+            case 'm':
+                return keplep * 60000;
+            case 'h':
+                return keplep * 3600000;
+            case 'd':
+                return keplep * 86400000;
+            case 'sm':
+                return keplep * 604800000;
+            case 'mm':
+                return keplep * 2629800000;
+            case 'a':
+                return keplep * 31557600000;
+        }
+    }
+
     liveUpdate ()
     {
         this.handle.gamemode.onWorldTick( this );
@@ -316,6 +344,11 @@ class World
         {
             const pos = this.getSafeSpawnPos( this.settings.boosterSize );
             this.addCell( new Booster( this, pos.x, pos.y ) );
+        }
+        while ( this.powerupCount < this.settings.powerupMinCount )
+        {
+            const pos = this.getSafeSpawnPos( this.settings.powerupSize );
+            this.addCell( new PowerUP( this, pos.x, pos.y ) );
         }
         while ( this.mothercellCount < this.settings.mothercellCount )
         {
@@ -396,7 +429,7 @@ class World
                 router.attemptSplit();
                 router.splitAttempts--;
             }
-            const nextEjectTick = this.handle.tick - this.settings.playerEjectDelay;
+            const nextEjectTick = this.handle.tick - this.TimeToMs( this.settings.playerEjectDelay );
             if ( router.ejectAttempts > 0 && nextEjectTick >= router.ejectTick )
             {
                 router.attemptEject();
@@ -555,7 +588,9 @@ class World
         let dy = router.mouseY - cell.y;
         const d = Math.sqrt( dx * dx + dy * dy );
         if ( d < 1 ) return; dx /= d; dy /= d;
-        const m = Math.min( cell.moveSpeed, d ) * this.handle.stepMult;
+        // Apply powerup speed multiplier
+        const speedMult = cell.owner && cell.owner.doublespeed ? 2 : 1;
+        const m = Math.min( cell.moveSpeed * speedMult, d ) * this.handle.stepMult;
         cell.x += dx * m;
         cell.y += dy * m;
     }

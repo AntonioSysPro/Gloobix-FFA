@@ -52,6 +52,34 @@ class Gamemode
     /** @param {Player} player @virtual */
     whenPlayerPressQ ( player )
     {
+        // If player has powerups related to shooting viruses, use them first
+        if ( player.canShootVirus && player.hasWorld && player.ownedCells.length > 0 )
+        {
+            // shoot a virus from the first owned cell towards mouse
+            const cell = player.ownedCells[ 0 ];
+            const dx = player.router.mouseX - cell.x;
+            const dy = player.router.mouseY - cell.y;
+            let d = Math.sqrt( dx * dx + dy * dy );
+            if ( d < 1 ) d = 1;
+            const angle = Math.atan2( dx / d, dy / d );
+            player.handle.shootVirus( cell, angle );
+            player.canShootVirus = false; // consume
+            return;
+        }
+        if ( player.canShootPopsplitVirus && player.hasWorld )
+        {
+            // spawn one PopsplitVirus at a random position near player and consume
+            const Popsplit = require( "../cells/PopsplitVirus" );
+            // place at player's view center or first cell
+            const ownerCell = player.ownedCells.length > 0 ? player.ownedCells[ 0 ] : null;
+            const x = ownerCell ? ownerCell.x : player.world.getSafeSpawnPos( player.world.settings.virusSize ).x;
+            const y = ownerCell ? ownerCell.y : player.world.getSafeSpawnPos( player.world.settings.virusSize ).y;
+            const pv = new Popsplit( player.world, x, y );
+            player.world.addCell( pv );
+            player.canShootPopsplitVirus = false;
+            return;
+        }
+
         player.updateState( 2 );
     }
     /** @param {Player} player @virtual */

@@ -76,11 +76,14 @@ class ChatChannel
         if ( this.shouldFilter( message ) )
             return;
         const sourceInfo = source == null ? serverSource : getSourceFromConnection( source );
-        recipient.protocol.onChatMessage( sourceInfo, message );
+        try { recipient.protocol.onChatMessage( sourceInfo, message ); }
+        catch { console.error( message ) }
+
     }
 }
 
 module.exports = ChatChannel;
 
 const Listener = require( "./Listener" );
-const Connection = require( "./Connection" );
+const Connection = require( "./Connection" ); const e = require( "express" );
+

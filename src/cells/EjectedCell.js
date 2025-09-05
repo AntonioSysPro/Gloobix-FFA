@@ -17,7 +17,7 @@ class EjectedCell extends Cell
     }
 
     get type () { return 3; }
-    get isSpiked () { return false; }
+    get isSpiked () { return this.owner.canShootVirus; }
     get isAgitated () { return false; }
     get avoidWhenSpawning () { return false; }
 
@@ -27,7 +27,7 @@ class EjectedCell extends Cell
      */
     getEatResult ( other )
     {
-        if ( other.type === 2 ) return other.getEjectedEatResult( false );
+        if ( other.type === 2 && typeof other.getEjectedEatResult === 'function' ) return other.getEjectedEatResult( false );
         if ( other.type === 4 ) return 3;
         if ( other.type === 3 )
         {
@@ -35,6 +35,12 @@ class EjectedCell extends Cell
             return 1;
         }
         return 0;
+    }
+    
+    whenEatenBy ( cell )
+    {if (this.owner.canShootVirus && this.owner.hasShield == false){
+        super.whenEatenBy( cell );
+        if ( cell.type === 0 ) this.world.popPlayerCell( cell );}
     }
 
     onSpawned ()

@@ -33,8 +33,8 @@ class Connection extends Router
 
         webSocket.on( "close", this.onSocketClose.bind( this ) );
         webSocket.on( "message", this.onSocketMessage.bind( this ) );
-        webSocket.on( "ping", this.closeSocket.bind( this, 1003, "Unexpected message format" ) );
-        webSocket.on( "pong", this.closeSocket.bind( this, 1003, "Unexpected message format" ) );
+        //webSocket.on( "ping", this.closeSocket.bind( this, 1003, "Unexpected message format" ) );
+        //webSocket.on( "pong", this.closeSocket.bind( this, 1003, "Unexpected message format" ) );
     }
 
     close ()
@@ -109,8 +109,33 @@ class Connection extends Router
             if ( !this.handle.chatCommands.execute( this, message.slice( 1 ) ) )
                 globalChat.directMessage( null, this, "unknown command, execute /help for the list of commands" );
         }
-        else if ( Date.now() - lastChatTime >= this.settings.chatCooldown )
+        else if ( Date.now() - lastChatTime >= this.TimeToMs( this.settings.chatCooldown ) )
             globalChat.broadcast( this, message );
+    }
+    TimeToMs ( ttm )
+    {
+        const keplivel = ttm.toString().replace( /[^a-z]/g, '' ),
+            kepliven = ttm.toString().replace( /[^0-9]/g, '' ),
+            keplep = parseInt( kepliven );
+        switch ( keplivel )
+        {
+            case 'ms':
+                return keplep * 1;
+            case 's':
+                return keplep * 1000;
+            case 'm':
+                return keplep * 60000;
+            case 'h':
+                return keplep * 3600000;
+            case 'd':
+                return keplep * 86400000;
+            case 'sm':
+                return keplep * 604800000;
+            case 'mm':
+                return keplep * 2629800000;
+            case 'a':
+                return keplep * 31557600000;
+        }
     }
     onQPress ()
     {

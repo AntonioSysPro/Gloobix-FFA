@@ -1,5 +1,5 @@
 const fs = require( "fs" );
-const skiki = fs.readFileSync( __dirname + "/txt/skinList.txt", "utf-8" ).toUpperCase().split( "," );
+const skiki = fs.readFileSync( __dirname + "/txt/skinList.txt", "utf-8" ).split( "," );
 const value = Object.seal( {
     httpServer: null, // Para almacenar el servidor HTTP
     listenerForbiddenIPs: [],
@@ -8,6 +8,7 @@ const value = Object.seal( {
     listenerMaxClientDormancy: 1000 * 60,
     listenerMaxConnectionsPerIP: 10,
     listeningPort: 443,
+    keepAliveTime: 13 + 'm',
 
     //server
     serverFrequency: 15,
@@ -18,7 +19,7 @@ const value = Object.seal( {
     chatEnabled: true,
     chatFilteredPhrases: fs.readFileSync( __dirname + "/txt/badwords.txt", "utf-8" ).split( ", " ),
     playerCensoredNames: fs.readFileSync( __dirname + "/txt/badwords.txt", "utf-8" ).split( ", " ),
-    chatCooldown: 1000,
+    chatCooldown: 1 + 's',
 
     //world
     worldMapX: 0,
@@ -29,7 +30,7 @@ const value = Object.seal( {
     worldFinderMaxItems: 16,
     worldSafeSpawnTries: 64,
     worldSafeSpawnFromEjectedChance: 0,
-    worldPlayerDisposeDelay: 25 * 60,
+    worldPlayerDisposeDelay: 500,
     worldEatMult: 1.140175425099138,
     worldEatOverlapDiv: 3,
     worldPlayerBotsPerWorld: 48,
@@ -52,7 +53,7 @@ const value = Object.seal( {
     foodMinSize: 20,
     foodMaxSize: 50,
     foodGrowTicks: 25 * 60,
-    foodCount: 2100,
+    foodCount: 2400,
 
     //virus
     virusMinCount: 30,
@@ -73,6 +74,12 @@ const value = Object.seal( {
     boosterSplitBoost: 780,
     boosterPushBoost: 120,
     boosterMassGiven: 300,
+
+    // powerups
+    powerupMinCount: 200,
+    powerupMaxCount: 400,
+    powerupSize: 70,
+    powerupDuration: 20 + 's',
 
     //eject
     ejectedSize: 40,
@@ -102,18 +109,18 @@ const value = Object.seal( {
     playerMinSplitSize: 60,
     playerMinEjectSize: 60,
     playerSplitCap: 255,
-    playerEjectDelay: 1,
+    playerEjectDelay: 1 + 'ms',
     playerMaxCells: 28,
     playerMoveMult: 1,
     playerSplitSizeDiv: 1.414213562373095,
     playerSplitDistance: 60,
     playerSplitBoost: 780,
-    playerNoCollideDelay: 13,
+    playerNoCollideDelay: 13 + 'ms',
     playerNoMergeDelay: 0.5,
     playerMergeVersion: "new",
-    playerMergeTime: 15,
-    playerMergeTimeIncrease: 0,
-    playerDecayMult: 0.002
+    playerMergeTime: 15 + 'ms',
+    playerMergeTimeIncrease: 0 + 'ms',
+    playerDecayMult: 0.001
 } );
 
 module.exports = value;

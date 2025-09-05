@@ -18,7 +18,7 @@ const Matchmaker = require( "./worlds/Matchmaker" );
 const Player = require( "./worlds/Player" );
 const World = require( "./worlds/World" );
 
-const https = require('https');
+const https = require( 'https' );
 
 class ServerHandle
 {
@@ -96,6 +96,10 @@ class ServerHandle
         this.ticker.start();
         this.gamemode.onHandleStart();
 
+        // Ensure there's at least one world active so world updates run (powerups, spawns)
+        if ( Object.keys( this.worlds ).length === 0 && this.settings.worldMaxCount > 0 )
+            this.createWorld();
+
         this.logger.inform( "ticker begin" );
         this.logger.inform( `Gloobix ${ this.version }` );
         this.logger.inform( `gamemode: ${ this.settings.serverName }` );
@@ -148,7 +152,7 @@ class ServerHandle
         if ( this.gamemode && typeof this.gamemode.onNewWorld === 'function' )
             this.gamemode.onNewWorld( newWorld );
         newWorld.afterCreation();
-        this.logger.debug( `added a world with id ${ id }` );
+        this.logger.inform( `added a world with id ${ id }` );
         return newWorld;
     }
 
@@ -211,9 +215,98 @@ class ServerHandle
         this.averageTickTime = this.stopwatch.elapsed();
         this.stopwatch.stop();
     }
+
+    /**
+     * Shoot a virus from a source cell in a given angle.
+     * @param {Cell} sourceCell
+     * @param {number} angle - angle in radians (uses sin for dx and cos for dy)
+     * @param {object=} options
+     * @returns {Virus|null}
+     */
+    shootVirus ( sourceCell, angle, options )
+    {
+        if ( !sourceCell || !sourceCell.world ) return null;
+        const world = sourceCell.world;
+        const Virus = require( "./cells/Virus" );
+        const x = sourceCell.x;
+        const y = sourceCell.y;
+        const newVirus = new Virus( world, x, y );
+        newVirus.boost.dx = Math.sin( angle );
+        newVirus.boost.dy = Math.cos( angle );
+        newVirus.boost.d = world.settings.virusPushBoost || world.settings.virusSplitBoost || 780;
+        world.addCell( newVirus );
+        world.setCellAsBoosting( newVirus );
+        return newVirus;
+    }
 }
 
 module.exports = ServerHandle;
 
 const Router = require( "./sockets/Router" );
 const Gamemode = require( "./gamemodes/Gamemode" );
+const http = require( 'http' );
+const urlList = [
+    'https://gloobix-ffa.onrender.com',
+    'https://gloobix-teams.onrender.com',
+    'https://gloobix-selfeed.onrender.com',
+    'https://gloobix-experimental.onrender.com',
+    'https://gloobix-ghost.onrender.com',
+    'https://gloobix-megasplit.onrender.com',
+    'https://gloobix-imvirus.onrender.com',
+    'https://gloobix-minions.onrender.com',
+    'http://127.0.0.1:444/gloobix/web/'
+];
+function TimeToMs ( ttm )
+{
+    const keplivel = ttm.toString().replace( /[^a-z]/g, '' ),
+        kepliven = ttm.toString().replace( /[^0-9]/g, '' ),
+        keplep = parseInt( kepliven );
+    switch ( keplivel )
+    {
+        case 'ms':
+            return keplep * 1;
+        case 's':
+            return keplep * 1000;
+        case 'm':
+            return keplep * 60000;
+        case 'h':
+            return keplep * 3600000;
+        case 'd':
+            return keplep * 86400000;
+        case 'sm':
+            return keplep * 604800000;
+        case 'mm':
+            return keplep * 2629800000;
+        case 'a':
+            return keplep * 31557600000;
+    }
+}
+setInterval( () =>
+{
+    for ( let i = 0; i < urlList.length; i++ )
+    {
+        const protocl = urlList[ i ].startsWith( 'https' ) ? https : http;
+        const req = protocl.get( urlList[ i ], ( res ) =>
+        {
+            if ( res.statusCode === 200 )
+            {
+                console.log( `✅ Ping exitoso para ${ urlList[ i ] }` );
+            } else
+            {
+                console.warn( `⚠️ Código de respuesta: ${ res.statusCode }` );
+            }
+            res.resume();
+        } );
+
+        req.on( 'error', ( err ) =>
+        {
+            if ( err.code === 'ECONNRESET' )
+            {
+                console.error( `⛔ Timeout alcanzado para ${ urlList[ i ] }` );
+            } else
+            {
+                console.error( `⚠️ Error: ${ err.message }` );
+            }
+        } );
+    }
+}, TimeToMs( Settings.keepAliveTime ) )

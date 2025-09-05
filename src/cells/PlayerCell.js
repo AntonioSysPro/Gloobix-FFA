@@ -22,10 +22,10 @@ class PlayerCell extends Cell
     {
         return 88 * Math.pow( this.size, -0.4396754 ) * this.owner.settings.playerMoveMult;
     }
-    get canMerge () { return this._canMerge; }
+    get canMerge () { return this.owner.hasMerge || this._canMerge; }
 
     get type () { return 0; }
-    get isSpiked () { return false; }
+    get isSpiked () { return this.owner.canShootVirus; }
     get isAgitated () { return false; }
     get avoidWhenSpawning () { return true; }
 
@@ -37,7 +37,7 @@ class PlayerCell extends Cell
     {
         if ( other.type === 0 )
         {
-            const delay = this.world.settings.playerNoCollideDelay;
+            const delay = this.TimeToMs( this.world.settings.playerNoCollideDelay );
             if ( other.owner.id === this.owner.id )
             {
                 if ( other.age < delay || this.age < delay ) return 0;
@@ -60,6 +60,32 @@ class PlayerCell extends Cell
         return other.size * this.world.settings.worldEatMult > this.size ? 0 : 2;
     }
 
+    TimeToMs ( ttm )
+    {
+        const keplivel = ttm.toString().replace( /[^a-z]/g, '' ),
+            kepliven = ttm.toString().replace( /[^0-9]/g, '' ),
+            keplep = parseInt( kepliven );
+        switch ( keplivel )
+        {
+            case 'ms':
+                return keplep * 1;
+            case 's':
+                return keplep * 1000;
+            case 'm':
+                return keplep * 60000;
+            case 'h':
+                return keplep * 3600000;
+            case 'd':
+                return keplep * 86400000;
+            case 'sm':
+                return keplep * 604800000;
+            case 'mm':
+                return keplep * 2629800000;
+            case 'a':
+                return keplep * 31557600000;
+        }
+    }
+
     onTick ()
     {
         super.onTick();
@@ -73,10 +99,10 @@ class PlayerCell extends Cell
 
         const settings = this.world.settings;
         let delay = settings.playerNoMergeDelay * 25;
-        if ( settings.playerMergeTime > 0 )
+        if ( this.TimeToMs( settings.playerMergeTime ) > 0 )
         {
-            const initial = Math.round( 25 * settings.playerMergeTime );
-            const increase = Math.round( 25 * this.size * settings.playerMergeTimeIncrease );
+            const initial = Math.round( 25 * this.TimeToMs( settings.playerMergeTime ) );
+            const increase = Math.round( 25 * this.size * this.TimeToMs( settings.playerMergeTimeIncrease ) );
             delay = Math.max( delay, settings.playerMergeVersion === "new" ? Math.max( initial, increase ) : initial + increase );
         }
         this._canMerge = this.age >= delay;
@@ -87,6 +113,18 @@ class PlayerCell extends Cell
         this.owner.router.onNewOwnedCell( this );
         this.owner.ownedCells.push( this );
         this.world.playerCells.unshift( this );
+    }
+    /**
+     * @param {boolean} isSelf
+     * @returns {CellEatResult}
+     */
+    whenEatenBy ( cell )
+    {
+        if ( this.owner.canShootPopsplitVirus && this.owner.hasShield == false )
+        {
+            super.whenEatenBy( cell );
+            if ( cell.type === 0 ) this.world.popPlayerCell( cell );
+        }
     }
 
     onRemoved ()
