@@ -60,7 +60,7 @@ class PowerUP extends Cell
         if ( this.power == 3 )
         { this.skin = "PowerupVirus"; }
         if ( this.power == 4 )
-        { this.skin = "8"; }
+        { this.skin = "PowerupPopsplit"; }
         if ( this.power == 5 )
         { this.skin = "PowerupColor"; }
         if ( this.power == 6 )
