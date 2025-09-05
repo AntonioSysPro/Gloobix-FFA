@@ -73,10 +73,12 @@ class Player
         if ( this.hasMinion > 0 )
         {
             let realCount = 0;
-            for ( let i = 0; i < this.router.minions.length > 0; i++ )
-            {
-                this.router.minions[ 0 ].close();
-                realCount++;
+            if (this.router && this.router.minions) { // Add this check
+                for ( let i = 0; i < this.router.minions.length > 0; i++ )
+                {
+                    this.router.minions[ 0 ].close();
+                    realCount++;
+                }
             }
         }
         if ( this.hasWorld ) this.world.removePlayer( this );
