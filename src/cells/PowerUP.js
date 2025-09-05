@@ -100,8 +100,6 @@ class PowerUP extends Cell
         if ( this.power === 1 )
         {
             player.doublespeed = true;
-            if ( this.world && this.world.handle && typeof this.world.handle.logger !== 'undefined' )
-                this.world.handle.logger.inform( `player ${ player.id } picked speed powerup` );
             if ( player.router && player.router.send ) this.world.worldChat && this.world.handle && this.world.handle.gamemode && this.world.handle.logger; // noop to quiet lint
             setTimeout( function ()
             {
